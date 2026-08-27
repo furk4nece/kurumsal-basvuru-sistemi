@@ -1,0 +1,26 @@
+# ==== Backend (Spring Boot / Maven) ====
+backend/target/
+backend/uploads/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+backend/src/main/resources/application.yml
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.class
+*.log
+
+# ==== Frontend (React) ====
+frontend/node_modules/
+frontend/build/
+frontend/.env
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
