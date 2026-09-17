@@ -5,7 +5,7 @@
 ## İçindekiler
 
 - [Özellikler](#özellikler)
-- [Teknoloji Yığını](#teknoloji-yığını)
+- [Kullanılan Teknolojiler](#kullanılan-teknolojiler)
 - [Proje Yapısı](#proje-yapısı)
 - [Gereksinimler](#gereksinimler)
 - [Kurulum](#kurulum)
@@ -32,7 +32,7 @@
 - **Kullanıcı yönetimi:** Profil görüntüleme/güncelleme, admin tarafından rol atama ve kullanıcı silme
 - **API dokümantasyonu:** springdoc-openapi ile otomatik Swagger UI
 
-## Teknoloji Yığını
+## Kullanılan Teknolojiler
 
 **Backend**
 - Java 21, Spring Boot 3.3.4
