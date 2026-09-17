@@ -50,55 +50,46 @@
 - Axios
 
 ## Proje Yapısı
-basvuru-sistemi/
-├── backend/
-│ ├── src/main/java/com/sirket/basvuru/
-│ │ ├── config/ # Güvenlik, OpenAPI, başlangıç verisi (DataInitializer)
-│ │ ├── controller/ # REST controller'lar
-│ │ ├── dto/ # İstek/yanıt DTO'ları
-│ │ ├── entity/ # JPA entity'leri
-│ │ ├── enums/ # Role, ApplicationStatus
-│ │ ├── exception/ # Global hata yönetimi
-│ │ ├── mapper/ # MapStruct mapper'ları
-│ │ ├── repository/ # Spring Data repository'leri
-│ │ ├── security/ # JWT filtre ve servisleri
-│ │ ├── service/ # Servis arayüzleri ve implementasyonları
-│ │ └── specification/ # Dinamik sorgu (JPA Specification) sınıfları
-│ └── src/main/resources/
-│ ├── application.yml.example # Yapılandırma şablonu (gerçek dosya git'e dahil değil)
-│ └── application.yml # Yerel yapılandırmanız (.gitignore içinde, siz oluşturursunuz)
-└── frontend/
-└── src/
-├── api/ # Axios tabanlı API istemcileri
-├── components/ # Ortak bileşenler (Layout, PrivateRoute, StatusChip)
-├── constants/ # Sabitler (durum kodları vb.)
-├── context/ # AuthContext (kimlik doğrulama durumu)
-└── pages/ # Sayfa bileşenleri (Login, Dashboard, Form, Profil, Kullanıcılar)
 
+```text
 basvuru-sistemi/
 ├── backend/
-│ ├── src/main/java/com/sirket/basvuru/
-│ │ ├── config/ # Güvenlik, OpenAPI, başlangıç verisi (DataInitializer)
-│ │ ├── controller/ # REST controller'lar
-│ │ ├── dto/ # İstek/yanıt DTO'ları
-│ │ ├── entity/ # JPA entity'leri
-│ │ ├── enums/ # Role, ApplicationStatus
-│ │ ├── exception/ # Global hata yönetimi
-│ │ ├── mapper/ # MapStruct mapper'ları
-│ │ ├── repository/ # Spring Data repository'leri
-│ │ ├── security/ # JWT filtre ve servisleri
-│ │ ├── service/ # Servis arayüzleri ve implementasyonları
-│ │ └── specification/ # Dinamik sorgu (JPA Specification) sınıfları
-│ └── src/main/resources/
-│ ├── application.yml.example # Yapılandırma şablonu (gerçek dosya git'e dahil değil)
-│ └── application.yml # Yerel yapılandırmanız (.gitignore içinde, siz oluşturursunuz)
-└── frontend/
-└── src/
-├── api/ # Axios tabanlı API istemcileri
-├── components/ # Ortak bileşenler (Layout, PrivateRoute, StatusChip)
-├── constants/ # Sabitler (durum kodları vb.)
-├── context/ # AuthContext (kimlik doğrulama durumu)
-└── pages/ # Sayfa bileşenleri (Login, Dashboard, Form, Profil, Kullanıcılar)
+│   ├── src/
+│   │   └── main/
+│   │       ├── java/
+│   │       │   └── com/
+│   │       │       └── sirket/
+│   │       │           └── basvuru/
+│   │       │               ├── config/          # Güvenlik, OpenAPI ve başlangıç verileri
+│   │       │               ├── controller/     # REST controller'lar
+│   │       │               ├── dto/             # İstek/yanıt DTO'ları
+│   │       │               ├── entity/          # JPA entity'leri
+│   │       │               ├── enums/           # Role, ApplicationStatus vb.
+│   │       │               ├── exception/       # Global hata yönetimi
+│   │       │               ├── mapper/          # MapStruct mapper'ları
+│   │       │               ├── repository/      # Spring Data repository'leri
+│   │       │               ├── security/        # JWT ve güvenlik servisleri
+│   │       │               ├── service/         # Servis arayüzleri ve implementasyonları
+│   │       │               └── specification/   # Dinamik JPA Specification sınıfları
+│   │       │
+│   │       └── resources/
+│   │           └── application.yml.example     # Yapılandırma şablonu
+│   │
+│   └── pom.xml
+│
+├── frontend/
+│   ├── src/
+│   │   ├── api/                 # Axios tabanlı API istemcileri
+│   │   ├── components/          # Ortak bileşenler
+│   │   ├── constants/           # Sabitler ve durum kodları
+│   │   ├── context/             # AuthContext vb.
+│   │   └── pages/               # Login, Dashboard, Form, Profil, Kullanıcılar
+│   │
+│   ├── package.json
+│   └── vite.config.js
+│
+├── .gitignore
+└── README.md
 
 
 ## Gereksinimler
