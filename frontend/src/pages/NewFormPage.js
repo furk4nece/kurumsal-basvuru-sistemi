@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Alert, Button, Card, CardContent, MenuItem, Stack, TextField } from "@mui/material";
+import Layout from "../components/Layout";
 import { createForm, getAllFormTypes } from "../api/formApi";
+import { extractErrorMessage } from "../utils/format";
 
 function NewFormPage() {
   const [formTypes, setFormTypes] = useState([]);
@@ -8,71 +11,80 @@ function NewFormPage() {
   const [description, setDescription] = useState("");
   const [formTypeId, setFormTypeId] = useState("");
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     getAllFormTypes()
-      .then((res) => setFormTypes(res.data))
+      .then((response) => setFormTypes(response.data))
       .catch(() => setError("Form turleri yuklenemedi"));
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setError("");
-
+    setSaving(true);
     try {
-      await createForm({ title, description, formTypeId: Number(formTypeId) });
-      navigate("/forms");
+      const response = await createForm({ title, description, formTypeId: Number(formTypeId) });
+      navigate(`/forms/${response.data.id}`, { replace: true });
     } catch (err) {
-      const details = err.response?.data?.details;
-      setError(details ? details.join(", ") : err.response?.data?.message || "Basvuru olusturulamadi");
+      setError(extractErrorMessage(err, "Basvuru olusturulamadi"));
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: 500, margin: "40px auto" }}>
-      <h2>Yeni Basvuru</h2>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: 12 }}>
-          <label>Baslik</label>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            style={{ width: "100%", padding: 8 }}
-          />
-        </div>
-        <div style={{ marginBottom: 12 }}>
-          <label>Aciklama</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
-            style={{ width: "100%", padding: 8 }}
-          />
-        </div>
-        <div style={{ marginBottom: 12 }}>
-          <label>Form Turu</label>
-          <select
-            value={formTypeId}
-            onChange={(e) => setFormTypeId(e.target.value)}
-            required
-            style={{ width: "100%", padding: 8 }}
-          >
-            <option value="">Seciniz...</option>
-            {formTypes.map((ft) => (
-              <option key={ft.id} value={ft.id}>
-                {ft.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        {error && <p style={{ color: "red" }}>{error}</p>}
-        <button type="submit" style={{ padding: "8px 16px" }}>
-          Olustur
-        </button>
-      </form>
-    </div>
+    <Layout title="Yeni Basvuru">
+      <Card sx={{ maxWidth: 700 }}>
+        <CardContent component="form" onSubmit={handleSubmit} sx={{ p: 3 }}>
+          <Stack spacing={2}>
+            <TextField
+              label="Baslik"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              required
+              fullWidth
+              inputProps={{ maxLength: 100 }}
+              helperText={`${title.length}/100`}
+            />
+            <TextField
+              label="Aciklama"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              multiline
+              rows={5}
+              fullWidth
+              inputProps={{ maxLength: 1000 }}
+              helperText={`${description.length}/1000`}
+            />
+            <TextField
+              select
+              label="Basvuru Turu"
+              value={formTypeId}
+              onChange={(event) => setFormTypeId(event.target.value)}
+              required
+              fullWidth
+            >
+              {formTypes.map((formType) => (
+                <MenuItem key={formType.id} value={formType.id}>
+                  {formType.name}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            {error && <Alert severity="error">{error}</Alert>}
+
+            <Stack direction="row" spacing={2}>
+              <Button type="submit" variant="contained" disabled={saving}>
+                {saving ? "Kaydediliyor..." : "Olustur"}
+              </Button>
+              <Button onClick={() => navigate("/forms")}>Vazgec</Button>
+            </Stack>
+          </Stack>
+        </CardContent>
+      </Card>
+    </Layout>
   );
 }
 

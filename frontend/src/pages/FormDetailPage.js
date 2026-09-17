@@ -1,150 +1,286 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { getFormById, updateForm } from "../api/formApi";
-import { getAllFormTypes } from "../api/formApi";
-import { uploadAttachment, deleteAttachment } from "../api/attachmentApi";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CircularProgress,
+  Divider,
+  Grid,
+  IconButton,
+  List,
+  ListItem,
+  ListItemText,
+  Stack,
+  Typography,
+} from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
+import DownloadIcon from "@mui/icons-material/Download";
+import Layout from "../components/Layout";
+import StatusChip from "../components/StatusChip";
+import { approveForm, cancelForm, changeFormStatus, deleteForm, getFormById, rejectForm } from "../api/formApi";
+import { deleteAttachment, downloadAttachment, uploadAttachment } from "../api/attachmentApi";
 import { useAuth } from "../context/AuthContext";
+import { isEditable } from "../constants/status";
+import { extractErrorMessage, formatDate } from "../utils/format";
+
+function DetailRow({ label, children }) {
+  return (
+    <Grid item xs={12} sm={6}>
+      <Typography variant="caption" color="text.secondary">
+        {label}
+      </Typography>
+      <Typography variant="body1">{children}</Typography>
+    </Grid>
+  );
+}
 
 function FormDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   const [form, setForm] = useState(null);
-  const [formTypes, setFormTypes] = useState([]);
-  const [editMode, setEditMode] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [formTypeId, setFormTypeId] = useState("");
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const loadForm = async () => {
+  const load = useCallback(async () => {
     try {
-      const res = await getFormById(id);
-      setForm(res.data);
-      setTitle(res.data.title);
-      setDescription(res.data.description || "");
-      setFormTypeId(res.data.formType.id);
+      const response = await getFormById(id);
+      setForm(response.data);
+      setError("");
     } catch (err) {
-      setError("Basvuru yuklenemedi");
+      setError(extractErrorMessage(err, "Basvuru yuklenemedi"));
+    } finally {
+      setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadForm();
-    getAllFormTypes().then((res) => setFormTypes(res.data));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const isOwner = form && user && form.applicant.email === user.email;
-  const canEdit = isOwner && form && (form.status === "NEW" || form.status === "IN_REVIEW");
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const handleUpdate = async (e) => {
-    e.preventDefault();
+  const isOwner = form && user && form.applicant?.email === user.email;
+  const canEdit = form && (isAdmin || (isOwner && isEditable(form.status)));
+
+  const runAction = async (action, confirmText) => {
+    if (confirmText && !window.confirm(confirmText)) return;
     setError("");
+    setInfo("");
     try {
-      await updateForm(id, { title, description, formTypeId: Number(formTypeId) });
-      setEditMode(false);
-      loadForm();
+      await action();
+      await load();
+      setInfo("Islem basarili");
     } catch (err) {
-      setError(err.response?.data?.message || "Guncelleme basarisiz");
+      setError(extractErrorMessage(err, "Islem basarisiz"));
     }
   };
 
-  const handleUpload = async (e) => {
-    e.preventDefault();
+  const handleUpload = async (event) => {
+    event.preventDefault();
     if (!file) return;
-    try {
+    await runAction(async () => {
       await uploadAttachment(id, file);
       setFile(null);
-      loadForm();
-    } catch (err) {
-      setError(err.response?.data?.message || "Dosya yuklenemedi");
-    }
+      event.target.reset();
+    });
   };
 
-  const handleDeleteAttachment = async (attachmentId) => {
-    if (!window.confirm("Bu dosyayi silmek istediginize emin misiniz?")) return;
+  const handleDownload = async (attachment) => {
     try {
-      await deleteAttachment(attachmentId);
-      loadForm();
+      const response = await downloadAttachment(attachment.id);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = attachment.originalName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (err) {
-      alert(err.response?.data?.message || "Dosya silinemedi");
+      setError(extractErrorMessage(err, "Dosya indirilemedi"));
     }
   };
 
-  if (error && !form) return <p style={{ color: "red", textAlign: "center" }}>{error}</p>;
-  if (!form) return <p style={{ textAlign: "center", marginTop: 40 }}>Yukleniyor...</p>;
+  if (loading) {
+    return (
+      <Layout title="Basvuru Detay">
+        <CircularProgress />
+      </Layout>
+    );
+  }
+
+  if (!form) {
+    return (
+      <Layout title="Basvuru Detay">
+        <Alert severity="error">{error || "Basvuru bulunamadi"}</Alert>
+        <Button sx={{ mt: 2 }} onClick={() => navigate("/forms")}>
+          Listeye Don
+        </Button>
+      </Layout>
+    );
+  }
 
   return (
-    <div style={{ maxWidth: 600, margin: "40px auto" }}>
-      <button onClick={() => navigate("/forms")}>{"< Geri"}</button>
-      <h2>{form.title}</h2>
+    <Layout title="Basvuru Detay">
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
+          {error}
+        </Alert>
+      )}
+      {info && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setInfo("")}>
+          {info}
+        </Alert>
+      )}
 
-      {!editMode ? (
-        <>
-          <p><strong>Aciklama:</strong> {form.description || "-"}</p>
-          <p><strong>Tur:</strong> {form.formType.name}</p>
-          <p><strong>Durum:</strong> {form.status}</p>
-          <p><strong>Basvuran:</strong> {form.applicant.name} {form.applicant.surname}</p>
+      <Card sx={{ mb: 3 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+            <Typography variant="h6">{form.title}</Typography>
+            <StatusChip status={form.status} />
+          </Box>
 
-          {canEdit && (
-            <button onClick={() => setEditMode(true)}>Duzenle</button>
-          )}
-        </>
-      ) : (
-        <form onSubmit={handleUpdate}>
-          <div style={{ marginBottom: 12 }}>
-            <label>Baslik</label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} required style={{ width: "100%", padding: 8 }} />
-          </div>
-          <div style={{ marginBottom: 12 }}>
-            <label>Aciklama</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} style={{ width: "100%", padding: 8 }} />
-          </div>
-          <div style={{ marginBottom: 12 }}>
-            <label>Form Turu</label>
-            <select value={formTypeId} onChange={(e) => setFormTypeId(e.target.value)} required style={{ width: "100%", padding: 8 }}>
-              {formTypes.map((ft) => (
-                <option key={ft.id} value={ft.id}>{ft.name}</option>
+          <Grid container spacing={2}>
+            <DetailRow label="Basvuru Turu">{form.formType?.name}</DetailRow>
+            <DetailRow label="Basvuran">
+              {form.applicant?.name} {form.applicant?.surname} ({form.applicant?.email})
+            </DetailRow>
+            <DetailRow label="Olusturma Tarihi">{formatDate(form.createdDate)}</DetailRow>
+            <DetailRow label="Guncelleme Tarihi">{formatDate(form.updatedDate)}</DetailRow>
+            <Grid item xs={12}>
+              <Typography variant="caption" color="text.secondary">
+                Aciklama
+              </Typography>
+              <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
+                {form.description || "-"}
+              </Typography>
+            </Grid>
+          </Grid>
+
+          <Divider sx={{ my: 3 }} />
+
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <Button onClick={() => navigate("/forms")}>Listeye Don</Button>
+
+            {canEdit && (
+              <Button variant="outlined" onClick={() => navigate(`/forms/${id}/edit`)}>
+                Duzenle
+              </Button>
+            )}
+
+            {isOwner && isEditable(form.status) && (
+              <Button
+                color="warning"
+                onClick={() => runAction(() => cancelForm(id), "Basvuru iptal edilsin mi?")}
+              >
+                Iptal Et
+              </Button>
+            )}
+
+            {isAdmin && form.status === "NEW" && (
+              <Button onClick={() => runAction(() => changeFormStatus(id, "IN_REVIEW"))}>
+                Incelemeye Al
+              </Button>
+            )}
+
+            {isAdmin && isEditable(form.status) && (
+              <>
+                <Button
+                  variant="contained"
+                  color="success"
+                  onClick={() => runAction(() => approveForm(id), "Basvuru onaylansin mi?")}
+                >
+                  Onayla
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={() => runAction(() => rejectForm(id), "Basvuru reddedilsin mi?")}
+                >
+                  Reddet
+                </Button>
+              </>
+            )}
+
+            {canEdit && (
+              <Button
+                color="error"
+                onClick={() =>
+                  runAction(async () => {
+                    await deleteForm(id);
+                    navigate("/forms", { replace: true });
+                  }, "Bu basvuru silinsin mi?")
+                }
+              >
+                Sil
+              </Button>
+            )}
+          </Stack>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Ek Dosyalar
+          </Typography>
+
+          {form.attachments?.length ? (
+            <List dense>
+              {form.attachments.map((attachment) => (
+                <ListItem
+                  key={attachment.id}
+                  divider
+                  secondaryAction={
+                    <>
+                      <IconButton size="small" onClick={() => handleDownload(attachment)}>
+                        <DownloadIcon fontSize="small" />
+                      </IconButton>
+                      {canEdit && (
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() =>
+                            runAction(() => deleteAttachment(attachment.id), "Bu dosya silinsin mi?")
+                          }
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </>
+                  }
+                >
+                  <ListItemText
+                    primary={attachment.originalName}
+                    secondary={formatDate(attachment.uploadDate)}
+                  />
+                </ListItem>
               ))}
-            </select>
-          </div>
-          <button type="submit">Kaydet</button>
-          <button type="button" onClick={() => setEditMode(false)} style={{ marginLeft: 8 }}>Iptal</button>
-        </form>
-      )}
+            </List>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              Henuz dosya eklenmemis.
+            </Typography>
+          )}
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
-      <hr style={{ margin: "24px 0" }} />
-
-      <h3>Ek Dosyalar</h3>
-      {form.attachments && form.attachments.length > 0 ? (
-        <ul>
-          {form.attachments.map((att) => (
-            <li key={att.id}>
-              {att.originalName}
-              {isOwner && (
-                <button onClick={() => handleDeleteAttachment(att.id)} style={{ marginLeft: 8 }}>
-                  Sil
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>Henuz dosya eklenmemis.</p>
-      )}
-
-      {isOwner && (
-        <form onSubmit={handleUpload} style={{ marginTop: 12 }}>
-          <input type="file" onChange={(e) => setFile(e.target.files[0])} />
-          <button type="submit" style={{ marginLeft: 8 }}>Yukle</button>
-        </form>
-      )}
-    </div>
+          {isOwner && isEditable(form.status) && (
+            <Box component="form" onSubmit={handleUpload} sx={{ mt: 2 }}>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <input type="file" onChange={(event) => setFile(event.target.files[0])} />
+                <Button type="submit" variant="contained" size="small" disabled={!file}>
+                  Yukle
+                </Button>
+              </Stack>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+    </Layout>
   );
 }
 

@@ -18,6 +18,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.http.HttpMethod;
 
 import java.util.List;
 
@@ -53,13 +54,23 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
+                                .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/api/auth/**").permitAll()
                     .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
-                    .requestMatchers("/api/forms/*/approve", "/api/forms/*/reject").hasRole("ADMIN")
-                    .requestMatchers("/api/dashboard/**").hasRole("ADMIN")
-                    .requestMatchers("/api/users/**").authenticated()
+
+                    .requestMatchers("/api/forms/*/approve", "/api/forms/*/reject", "/api/forms/*/status").hasRole("ADMIN")
+                    .requestMatchers("/api/dashboard", "/api/dashboard/**").authenticated()
+
+                    .requestMatchers(HttpMethod.GET, "/api/form-types/**").authenticated()
+                    .requestMatchers(HttpMethod.POST, "/api/form-types/**").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/api/form-types/**").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, "/api/form-types/**").hasRole("ADMIN")
+
+                    .requestMatchers("/api/users/me").authenticated()
+                    .requestMatchers("/api/users/**").hasRole("ADMIN")
+
                     .requestMatchers("/api/forms/**").authenticated()
+                    .requestMatchers("/api/attachments/**").authenticated()
                     .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
